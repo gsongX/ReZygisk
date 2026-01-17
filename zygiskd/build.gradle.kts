@@ -39,7 +39,12 @@ val CStandardFlags = arrayOf(
 )
 
 val CFlagsRelease = arrayOf(
-  "-Wl,--strip-all", "-flto=thin", "-O3", "-ffast-math"
+  "-Wl,--strip-all", "-flto=thin", "-O3", "-ffast-math",
+  "-mllvm","--enable-constraint-elimination=true",
+  "-mllvm","--extra-vectorizer-passes=true",
+  "-mllvm","--enable-loopinterchange=true",
+  "-mllvm","--enable-partial-inlining=true",
+  "-mllvm","--enable-dfa-jump-thread=true",
 )
 
 val CFlagsDebug = arrayOf(

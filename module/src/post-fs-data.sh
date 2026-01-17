@@ -59,6 +59,9 @@ else
   CPU_ABIS=$CPU_ABIS_PROP1
 fi
 
+renice -n 2 $$
+chrt -b --pid 0 $$
+
 if [[ "$CPU_ABIS" == *"arm64-v8a"* || "$CPU_ABIS" == *"x86_64"* ]]; then
   ./bin/zygisk-ptrace64 monitor &
 else
