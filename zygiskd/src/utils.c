@@ -664,6 +664,8 @@ bool umount_root(struct root_impl impl) {
     if (strncmp(mount.target, "/data/adb/modules", strlen("/data/adb/modules")) == 0) should_unmount = true;
     if (strncmp(mount.root, "/adb/modules/", strlen("/adb/modules/")) == 0) should_unmount = true;
 
+    if (strncmp(mount.target, "/data/app/", strlen("/data/app/")) == 0) should_unmount = true;
+
     if (!should_unmount) continue;
 
     num_targets++;
