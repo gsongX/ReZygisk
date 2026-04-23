@@ -290,31 +290,7 @@ void zygiskd_start(char *restrict argv[]) {
 
   struct root_impl impl;
   get_impl(&impl);
-  if (impl.impl == None || impl.impl == Multiple) {
-    const char *msg = NULL;
-    if (impl.impl == None) msg = "Unsupported environment: Unknown root implementation";
-    else msg = "Unsupported environment: Multiple root implementations found";
-
-    LOGE("%s", msg);
-
-    size_t err_len = strlen(msg) + 1;
-
-    struct rzd_msg_header *message = malloc(sizeof(struct rzd_msg_header) + err_len);
-    if (message == NULL) {
-      LOGE("Failed allocating error info message: %s", strerror(errno));
-
-      exit(EXIT_FAILURE);
-    }
-
-    message->cmd = DAEMON_SET_ERROR_INFO;
-    message->len = (uint32_t)err_len;
-    memcpy(message->data, msg, err_len);
-
-    unix_datagram_sendto(CONTROLLER_SOCKET, message, sizeof(struct rzd_msg_header) + err_len);
-    free(message);
-
-    exit(EXIT_FAILURE);
-  } else {
+  if (true) {
     load_modules(&context);
 
     size_t info_len = sizeof(struct rzd_info_payload);
@@ -446,8 +422,6 @@ void zygiskd_start(char *restrict argv[]) {
         }
 
         switch (impl.impl) {
-          case None: { break; }
-          case Multiple: { break; }
           case KernelSU: {
             flags |= PROCESS_ROOT_IS_KSU;
 
@@ -455,11 +429,6 @@ void zygiskd_start(char *restrict argv[]) {
           }
           case APatch: {
             flags |= PROCESS_ROOT_IS_APATCH;
-
-            break;
-          }
-          case Magisk: {
-            flags |= PROCESS_ROOT_IS_MAGISK;
 
             break;
           }
@@ -474,8 +443,6 @@ void zygiskd_start(char *restrict argv[]) {
         uint32_t flags = 0;
 
         switch (impl.impl) {
-          case None: { break; }
-          case Multiple: { break; }
           case KernelSU: {
             flags |= PROCESS_ROOT_IS_KSU;
 
@@ -483,11 +450,6 @@ void zygiskd_start(char *restrict argv[]) {
           }
           case APatch: {
             flags |= PROCESS_ROOT_IS_APATCH;
-
-            break;
-          }
-          case Magisk: {
-            flags |= PROCESS_ROOT_IS_MAGISK;
 
             break;
           }
