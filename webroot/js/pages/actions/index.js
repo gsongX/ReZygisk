@@ -47,11 +47,15 @@ export async function onceViewAfterUpdate() {
 }
 
 export async function load() {
+  const getUmountStatus = await exec(`[[ -e '/data/adb/rezygisk_disable_umount' ]]`)
   const monitor_start = document.getElementById('monitor_start_button')
   const monitor_stop = document.getElementById('monitor_stop_button')
   const monitor_pause = document.getElementById('monitor_pause_button')
   const monitor_status = document.getElementById('monitor_status')
+  const umount_switch = document.getElementById('rz_webui_umount_switch')
   const strings = await getStrings(whichCurrentPage())
+
+  if (getUmountStatus.errno !== 0) umount_switch.checked = true
 
   monitor_start.addEventListener('click', () => {
     if (![ strings.monitor.status.tracing, strings.monitor.status.stopping, strings.monitor.status.stopped ].includes(monitor_status.innerHTML)) return;
@@ -68,6 +72,17 @@ export async function load() {
     if (![ strings.monitor.status.tracing, strings.monitor.status.stopping, strings.monitor.status.stopped ].includes(monitor_status.innerHTML)) return;
     monitor_status.innerHTML = strings.monitor.status.stopped
     exec('/data/adb/modules/rezygisk/bin/zygisk-ptrace64 ctl stop')
+  })
+
+  umount_switch.addEventListener('click', async (e) => {
+		const getNewUmountStatus = await exec(`[[ -e '/data/adb/rezygisk_disable_umount' ]]`)
+		if (getUmountStatus.errno == 0) {
+		  toast('ReZygisk Umount now enabled! Reboot to apply!')
+		  exec('rm -f /data/adb/rezygisk_disable_umount')
+		} else {
+	      toast('ReZygisk Umount now disabled! Reboot to apply!')
+		    exec('touch /data/adb/rezygisk_disable_umount')
+		}
   })
 
   return;
