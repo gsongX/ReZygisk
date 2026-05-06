@@ -1,3 +1,8 @@
+#include <sys/types.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+
 #include "common.h"
 
 #include "../utils.h"
@@ -38,6 +43,9 @@ bool uid_granted_root(uid_t uid) {
 }
 
 bool uid_should_umount(uid_t uid) {
+  if (access("/data/adb/rezygisk_disable_umount", F_OK) == 0) {
+    return false;
+  }
   switch (impl.impl) {
     case KernelSU: {
       return ksu_uid_should_umount(uid);
