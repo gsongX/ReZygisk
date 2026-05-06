@@ -37,6 +37,10 @@
           "stop": "停止",
           "pause": "暂停"
         }
+      },
+      "umount": {
+        "title": "ReZygisk Umount",
+        "description": "开启或关闭 ReZygisk 卸载功能"
       }
     },
     "modules": {
