@@ -143,16 +143,17 @@ void ksu_get_existence(struct root_impl_state *state) {
 
   // ksu_uses_new_ksuctl = true;
 
-  struct ksu_set_feature_cmd cmd = {
-    .feature_id = 1, /* INFO: kernel_umount */
-    .value = 0
-  };
-
-  /* INFO: Tell KernelSU to not umount, and let us handle it */
-  if (ioctl(ksu_fd, KSU_IOCTL_SET_FEATURE, &cmd) == -1) {
-    LOGW("Failed to ioctl KSU_IOCTL_SET_FEATURE: %s\n", strerror(errno));
-
-    /* INFO: Not a fatal error, just log and continue */
+  // INFO: Force disable kernel umount when RZ umount is enabled
+  if (access("/data/adb/rezygisk_disable_umount", F_OK) != 0) {
+    struct ksu_set_feature_cmd cmd = {
+      .feature_id = 1, /* INFO: kernel_umount */
+      .value = 0
+    };
+    /* INFO: Tell KernelSU to not umount, and let us handle it */
+    if (ioctl(ksu_fd, KSU_IOCTL_SET_FEATURE, &cmd) == -1) {
+      LOGW("Failed to ioctl KSU_IOCTL_SET_FEATURE: %s\n", strerror(errno));
+      /* INFO: Not a fatal error, just log and continue */
+    }
   }
 
   // struct ksu_get_hook_mode_cmd hook_mode_cmd = { 0 };

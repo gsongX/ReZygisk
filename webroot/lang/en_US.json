@@ -37,6 +37,10 @@
           "stop": "Stop",
           "pause": "Pause"
         }
+      },
+      "umount": {
+        "title": "ReZygisk Umount",
+        "description": "Enable or disable ReZygisk Umount"
       }
     },
     "modules": {
