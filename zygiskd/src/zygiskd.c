@@ -46,6 +46,17 @@ struct Context {
   #define ARCH_STR "unknown"
 #endif
 
+static bool is_valid_module_name(const char *name) {
+  if (!name || name[0] == '\0') return false;
+  for (size_t i = 0; name[i]; i++) {
+    char c = name[i];
+    bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+              (c >= '0' && c <= '9') || c == '_' || c == '-' || c == '.';
+    if (!ok || i >= 127) return false;
+  }
+  return true;
+}
+
 /* WARNING: Dynamic memory based */
 static void load_modules(struct Context *restrict context) {
   context->len = 0;
@@ -64,6 +75,10 @@ static void load_modules(struct Context *restrict context) {
   while ((entry = readdir(dir)) != NULL) {
     if (entry->d_type != DT_DIR) continue; /* INFO: Only directories */
     if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, "rezygisk") == 0) continue;
+    if (!is_valid_module_name(entry->d_name)) {
+      LOGW("Skipping module with invalid name: %s", entry->d_name);
+      continue;
+    }
 
     char *name = entry->d_name;
     char so_path[PATH_MAX];
