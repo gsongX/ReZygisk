@@ -110,6 +110,7 @@ static void load_modules(struct Context *restrict context) {
       LOGE("Failed to strdup for the module \"%s\": %s", name, strerror(errno));
 
       close(lib_fd);
+      closedir(dir);
 
       for (size_t i = 0; i < context->len; i++) {
         free(context->modules[i].name);
@@ -318,7 +319,10 @@ void zygiskd_start(char *restrict argv[]) {
 
   bool first_process = true;
   while (1) {
-    int client_fd = accept(socket_fd, NULL, NULL);
+    int client_fd;
+    do {
+      client_fd = accept(socket_fd, NULL, NULL);
+    } while (client_fd == -1 && errno == EINTR);
     if (client_fd == -1) {
       LOGE("accept: %s", strerror(errno));
 
@@ -332,13 +336,13 @@ void zygiskd_start(char *restrict argv[]) {
 
       close(client_fd);
 
-      break;
+      continue;
     } else if (len == 0) {
       LOGI("Client disconnected");
 
       close(client_fd);
 
-      break;
+      continue;
     }
 
     enum DaemonSocketAction action = (enum DaemonSocketAction)action8;
