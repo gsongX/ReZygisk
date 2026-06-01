@@ -195,14 +195,22 @@ export async function onceViewAfterUpdate() {
 
 export async function load() {
   if (_refreshInterval) clearInterval(_refreshInterval);
+  let _refreshInFlight = false;
   _refreshInterval = setInterval(async () => {
     if (whichCurrentPage() !== 'home') {
       clearInterval(_refreshInterval);
       _refreshInterval = null;
       return;
     }
-    const state = await _getReZygiskState();
-    const strings = await getStrings(whichCurrentPage());
-    _updateDynamicElement(false, state, strings);
+    if (_refreshInFlight) return;
+    _refreshInFlight = true;
+    try {
+      const state = await _getReZygiskState();
+      const strings = await getStrings(whichCurrentPage());
+      _updateDynamicElement(false, state, strings);
+    } catch (_) {
+    } finally {
+      _refreshInFlight = false;
+    }
   }, 3000);
 }
