@@ -160,7 +160,15 @@ bool rezygiskd_listener_init() {
     .sun_path = { 0 }
   };
 
-  size_t sun_path_len = sprintf(addr.sun_path, "%s/%s", rezygiskd_get_path(), SOCKET_NAME);
+  int _sun_path_ret = snprintf(addr.sun_path, sizeof(addr.sun_path), "%s/%s", rezygiskd_get_path(), SOCKET_NAME);
+  if (_sun_path_ret < 0 || (size_t)_sun_path_ret >= sizeof(addr.sun_path)) {
+    LOGE("Socket path too long");
+
+    close(monitor_sock_fd);
+
+    return false;
+  }
+  size_t sun_path_len = (size_t)_sun_path_ret;
 
   socklen_t socklen = sizeof(sa_family_t) + sun_path_len;
   if (bind(monitor_sock_fd, (struct sockaddr *)&addr, socklen) == -1) {
@@ -359,6 +367,8 @@ void rezygiskd_listener_callback() {
 
           break;
         }
+
+        if (error_info_len > 512) error_info_len = 512;
 
         struct rezygiskd_status *status = cmd == DAEMON64_SET_ERROR_INFO ? &status64 : &status32;
         if (status->daemon_error_info) {
@@ -814,26 +824,36 @@ void sigchld_listener_stop() {
 
 static char pre_section[1024];
 static char post_section[1024];
+static char last_status_text[1024] = { 0 };
 
 #define WRITE_STATUS_ABI(suffix)                                                     \
   if (status ## suffix.supported) {                                                  \
-    strcat(status_text, ", ReZygisk " # suffix "-bit: ");                            \
+    STATUS_CAT(", ReZygisk " # suffix "-bit: ");                                     \
                                                                                      \
-    if (tracing_state != TRACING) strcat(status_text, "❌");                         \
+    if (tracing_state != TRACING) STATUS_CAT("❌");                                  \
     else if (status ## suffix.zygote_injected && status ## suffix.daemon_running)    \
-      strcat(status_text, "✅");                                                     \
-    else strcat(status_text, "⚠️");                                                  \
+      STATUS_CAT("✅");                                                              \
+    else STATUS_CAT("⚠️");                                                           \
                                                                                      \
     if (!status ## suffix.daemon_running) {                                          \
       if (status ## suffix.daemon_error_info) {                                      \
-        strcat(status_text, "(ReZygiskd: ");                                         \
-        strcat(status_text, status ## suffix.daemon_error_info);                     \
-        strcat(status_text, ")");                                                    \
+        STATUS_CAT("(ReZygiskd: ");                                                  \
+        STATUS_CAT(status ## suffix.daemon_error_info);                              \
+        STATUS_CAT(")");                                                             \
       } else {                                                                       \
-        strcat(status_text, "(ReZygiskd: not running)");                             \
+        STATUS_CAT("(ReZygiskd: not running)");                                      \
       }                                                                              \
     }                                                                                \
   }
+
+static void json_escape(const char *src, char *dst, size_t dst_size) {
+  size_t j = 0;
+  for (size_t i = 0; src[i] && j < dst_size - 2; i++) {
+    if (src[i] == '"' || src[i] == '\\') dst[j++] = '\\';
+    dst[j++] = src[i];
+  }
+  dst[j] = '\0';
+}
 
 static bool update_status(const char *message) {
   FILE *prop = fopen("/data/adb/modules/rezygisk/module.prop", "w");
@@ -850,21 +870,22 @@ static bool update_status(const char *message) {
     return true;
   }
 
-  char status_text[256] = "Monitor: ";
+  char status_text[1024] = "Monitor: ";
+  #define STATUS_CAT(s) strncat(status_text, (s), sizeof(status_text) - strlen(status_text) - 1)
   switch (tracing_state) {
     case TRACING: {
-      strcat(status_text, "✅");
+      STATUS_CAT("✅");
 
       break;
     }
     case STOPPING: [[fallthrough]];
     case STOPPED: {
-      strcat(status_text, "⛔");
+      STATUS_CAT("⛔");
 
       break;
     }
     case EXITING: {
-      strcat(status_text, "❌");
+      STATUS_CAT("❌");
 
       break;
     }
@@ -873,8 +894,18 @@ static bool update_status(const char *message) {
   WRITE_STATUS_ABI(64)
   WRITE_STATUS_ABI(32)
 
+  if (message == NULL && strcmp(last_status_text, status_text) == 0) {
+    return true;
+  }
+  if (message != NULL) last_status_text[0] = '\0';
+  else {
+    strncpy(last_status_text, status_text, sizeof(last_status_text) - 1);
+    last_status_text[sizeof(last_status_text) - 1] = '\0';
+  }
+
   fprintf(prop, "%s[%s] %s", pre_section, status_text, post_section);
   fclose(prop);
+  #undef STATUS_CAT
 
   if (environment_information64.root_impl || environment_information32.root_impl) {
     FILE *json = fopen("/data/adb/rezygisk/state.json", "w");
@@ -903,12 +934,18 @@ static bool update_status(const char *message) {
       if (status64.supported) {
         fprintf(json, "    \"64\": {\n");
         fprintf(json, "      \"state\": %d,\n", status64.daemon_running);
-        if (status64.daemon_error_info) fprintf(json, "      \"reason\": \"%s\",\n", status64.daemon_error_info);
+        if (status64.daemon_error_info) {
+          char escaped_err[640];
+          json_escape(status64.daemon_error_info, escaped_err, sizeof(escaped_err));
+          fprintf(json, "      \"reason\": \"%s\",\n", escaped_err);
+        }
         fprintf(json, "      \"modules\": [");
 
         if (environment_information64.modules) for (uint32_t i = 0; i < environment_information64.modules_len; i++) {
+          char escaped_mod[512];
+          json_escape(environment_information64.modules[i], escaped_mod, sizeof(escaped_mod));
           if (i > 0) fprintf(json, ", ");
-          fprintf(json, "\"%s\"", environment_information64.modules[i]);
+          fprintf(json, "\"%s\"", escaped_mod);
         }
 
         fprintf(json, "]\n");
@@ -920,12 +957,18 @@ static bool update_status(const char *message) {
       if (status32.supported) {
         fprintf(json, "    \"32\": {\n");
         fprintf(json, "      \"state\": %d,\n", status32.daemon_running);
-        if (status32.daemon_error_info) fprintf(json, "      \"reason\": \"%s\",\n", status32.daemon_error_info);
+        if (status32.daemon_error_info) {
+          char escaped_err[640];
+          json_escape(status32.daemon_error_info, escaped_err, sizeof(escaped_err));
+          fprintf(json, "      \"reason\": \"%s\",\n", escaped_err);
+        }
         fprintf(json, "      \"modules\": [");
 
         if (environment_information32.modules) for (uint32_t i = 0; i < environment_information32.modules_len; i++) {
+          char escaped_mod[512];
+          json_escape(environment_information32.modules[i], escaped_mod, sizeof(escaped_mod));
           if (i > 0) fprintf(json, ", ");
-          fprintf(json, "\"%s\"", environment_information32.modules[i]);
+          fprintf(json, "\"%s\"", escaped_mod);
         }
 
         fprintf(json, "]\n");
@@ -970,19 +1013,23 @@ static bool prepare_environment() {
 
   bool after_description = false;
 
+  #define BOUNDED_CAT(dst, src) strncat((dst), (src), sizeof(dst) - strlen(dst) - 1)
+
   char line[1024];
   while (fgets(line, sizeof(line), orig_prop) != NULL) {
     if (strncmp(line, "description=", strlen("description=")) == 0) {
-      strcat(pre_section, "description=");
-      strcat(post_section, line + strlen("description="));
+      BOUNDED_CAT(pre_section, "description=");
+      BOUNDED_CAT(post_section, line + strlen("description="));
       after_description = true;
 
       continue;
     }
 
-    if (after_description) strcat(post_section, line);
-    else strcat(pre_section, line);
+    if (after_description) BOUNDED_CAT(post_section, line);
+    else BOUNDED_CAT(pre_section, line);
   }
+
+  #undef BOUNDED_CAT
 
   fclose(orig_prop);
 
