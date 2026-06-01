@@ -14,6 +14,7 @@
 #include "constants.h"
 #include "root_impl/common.h"
 #include "utils.h"
+#include "verify.h"
 
 struct Module {
   char *name;
@@ -90,6 +91,11 @@ static void load_modules(struct Context *restrict context) {
     snprintf(disabled, PATH_MAX, "/data/adb/modules/%s/disable", name);
 
     if (access(disabled, F_OK) == 0) continue;
+
+    if (!verify_module_so(PATH_MODULES_DIR, name, ARCH_STR)) {
+      LOGE("Module '%s' failed signature verification, skipping", name);
+      continue;
+    }
 
     int lib_fd = open(so_path, O_RDONLY | O_CLOEXEC);
     if (lib_fd == -1) {
