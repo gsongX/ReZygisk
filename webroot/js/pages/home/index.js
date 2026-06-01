@@ -85,7 +85,6 @@ async function _updateDynamicElement(firstRun, ReZygiskState, strings) {
     document.getElementById('zygote32_status')
   ]
 
-  /* INFO: Just ensure that they won't appear unless there's info */
   zygote_divs.forEach((zygote_div) => {
     zygote_div.style.display = 'none'
   })
@@ -94,7 +93,8 @@ async function _updateDynamicElement(firstRun, ReZygiskState, strings) {
     rz_state.innerHTML = strings.unknown
     rz_icon_state.innerHTML = '<img class="brightc" src="assets/mark.svg">'
     document.getElementById('zygote_class').style.display = 'none'
-    /* INFO: This hides the throbber screen */
+    const errDivNull = document.getElementById('rz_error')
+    if (errDivNull) errDivNull.style.display = 'none'
     loading_screen.style.display = 'none'
     return;
   }
@@ -157,6 +157,19 @@ async function _updateDynamicElement(firstRun, ReZygiskState, strings) {
   if (ReZygiskState.zygote === undefined) {
     document.getElementById('zygote_class').style.display = 'none'
   }
+
+  const errDiv = document.getElementById('rz_error')
+  if (errDiv) {
+    const reason = ReZygiskState?.monitor?.reason
+                || ReZygiskState?.rezygiskd?.['64']?.reason
+                || ReZygiskState?.rezygiskd?.['32']?.reason
+    if (reason) {
+      errDiv.textContent = reason
+      errDiv.style.display = 'block'
+    } else {
+      errDiv.style.display = 'none'
+    }
+  }
 }
 
 export async function loadOnce() {
@@ -183,7 +196,6 @@ export async function loadOnceView() {
 
   _updateDynamicElement(true, ReZygiskState, strings)
 
-  /* INFO: This hides the throbber screen */
   loading_screen.style.display = 'none'
 }
 
