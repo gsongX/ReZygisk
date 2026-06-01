@@ -856,14 +856,14 @@ static void json_escape(const char *src, char *dst, size_t dst_size) {
 }
 
 static bool update_status(const char *message) {
-  FILE *prop = fopen("/data/adb/modules/rezygisk/module.prop", "w");
-  if (prop == NULL) {
-    PLOGE("failed to open prop");
-
-    return false;
-  }
-
   if (message) {
+    FILE *prop = fopen("/data/adb/modules/rezygisk/module.prop", "w");
+    if (prop == NULL) {
+      PLOGE("failed to open prop");
+
+      return false;
+    }
+
     fprintf(prop, "%s[%s] %s", pre_section, message, post_section);
     fclose(prop);
 
@@ -894,13 +894,17 @@ static bool update_status(const char *message) {
   WRITE_STATUS_ABI(64)
   WRITE_STATUS_ABI(32)
 
-  if (message == NULL && strcmp(last_status_text, status_text) == 0) {
+  if (strcmp(last_status_text, status_text) == 0) {
     return true;
   }
-  if (message != NULL) last_status_text[0] = '\0';
-  else {
-    strncpy(last_status_text, status_text, sizeof(last_status_text) - 1);
-    last_status_text[sizeof(last_status_text) - 1] = '\0';
+  strncpy(last_status_text, status_text, sizeof(last_status_text) - 1);
+  last_status_text[sizeof(last_status_text) - 1] = '\0';
+
+  FILE *prop = fopen("/data/adb/modules/rezygisk/module.prop", "w");
+  if (prop == NULL) {
+    PLOGE("failed to open prop");
+
+    return false;
   }
 
   fprintf(prop, "%s[%s] %s", pre_section, status_text, post_section);
