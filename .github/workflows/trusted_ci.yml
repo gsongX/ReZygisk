@@ -37,9 +37,9 @@ jobs:
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           if [ -n "$PREV_TAG" ]; then
-            git log --oneline "${PREV_TAG}..HEAD" --pretty=format:"- %s" > CHANGELOG_LATEST.md
+            git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" > CHANGELOG_LATEST.md
           else
-            git log --oneline --pretty=format:"- %s" > CHANGELOG_LATEST.md
+            git log --pretty=format:"- %s" > CHANGELOG_LATEST.md
           fi
           echo "Generated changelog:"
           cat CHANGELOG_LATEST.md
