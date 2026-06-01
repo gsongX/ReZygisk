@@ -19,6 +19,14 @@ async function _getReZygiskState() {
   }
 }
 
+async function _getModuleBadge(modName) {
+  const r = await exec('/system/bin/test -f /data/adb/modules/' + modName + '/disable')
+  const disabled = r.errno === 0
+  return disabled
+    ? '<span class="badge badge-disabled">Disabled</span>'
+    : '<span class="badge badge-enabled">Enabled</span>'
+}
+
 async function _getModuleNames(modules) {
   const fullCommand = modules.map((mod) => {
     const propPath = `/data/adb/modules/${mod.id}/module.prop`
@@ -72,16 +80,17 @@ async function _updateDynamicElement() {
     const module_names = await _getModuleNames(all_modules)
     module_names.forEach((module_name, i) => all_modules[i].name = module_name)
 
-    all_modules.forEach((module) => {
+    for (const module of all_modules) {
+      const badge = await _getModuleBadge(module.id)
       modules_list.innerHTML +=
         `<div class="dim card" style="padding: 25px 15px; cursor: pointer;">
-          <div class="dimc" style="font-size: 1.1em;">${module.name}</div>
+          <div class="dimc" style="font-size: 1.1em; display: flex; align-items: center; gap: 8px;">${module.name}${badge}</div>
           <div class="dimc desc" style="font-size: 0.9em; margin-top: 3px; white-space: nowrap; align-items: center; display: flex;">
             <div class="dimc arch_desc">${strings.arch}</div>
             <div class="dimc" style="margin-left: 5px;">${module.bitsUsed.join(' / ')}</div>
           </div>
         </div>`
-    })
+    }
   }
 }
 
