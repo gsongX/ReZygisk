@@ -14,9 +14,19 @@ bool verify_module_so(const char *module_dir, const char *name, const char *arch
     return true;
   }
 
-  fseek(f, 0, SEEK_END);
+  if (fseek(f, 0, SEEK_END) != 0) {
+    fclose(f);
+    LOGW("[verify] fseek failed for '%s' signature, allowing", name);
+    return true;
+  }
+
   long size = ftell(f);
   fclose(f);
+
+  if (size < 0) {
+    LOGW("[verify] ftell failed for '%s' signature, allowing", name);
+    return true;
+  }
 
   if (size == 0) {
     LOGW("[verify] Empty machikado.%s for '%s' — unsigned build, allowing", arch_str, name);
