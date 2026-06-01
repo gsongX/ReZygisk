@@ -116,15 +116,13 @@ void ElfImg_destroy(ElfImg *img) {
   if (!img) return;
 
   if (img->symtabs_) {
-    size_t valid_symtabs_amount = calculate_valid_symtabs_amount(img);
-    if (valid_symtabs_amount > 0) {
-      for (size_t i = 0; i < valid_symtabs_amount; i++) {
-        free(img->symtabs_[i].name);
-      }
+    for (size_t i = 0; i < img->valid_symtabs_count; i++) {
+      free(img->symtabs_[i].name);
     }
 
     free(img->symtabs_);
     img->symtabs_ = NULL;
+    img->valid_symtabs_count = 0;
   }
 
   if (img->elf) {
@@ -491,6 +489,8 @@ bool _load_symtabs(ElfImg *img) {
     }
   }
 
+  img->valid_symtabs_count = current_valid_index;
+
   return true;
 }
 
@@ -598,14 +598,13 @@ ElfW(Addr) ElfLookup(ElfImg *restrict img, const char *restrict name, uint32_t h
 ElfW(Addr) LinearLookup(ElfImg *img, const char *restrict name, unsigned char *sym_type) {
   if (!_load_symtabs(img)) return 0;
 
-  size_t valid_symtabs_amount = calculate_valid_symtabs_amount(img);
-  if (valid_symtabs_amount == 0) {
+  if (img->valid_symtabs_count == 0) {
     LOGW("No valid symbols (FUNC/OBJECT with size > 0) found in .symtab for %s", img->elf);
 
     return 0;
   }
 
-  for (size_t i = 0; i < valid_symtabs_amount; i++) {
+  for (size_t i = 0; i < img->valid_symtabs_count; i++) {
     if (!img->symtabs_[i].name || strcmp(name, img->symtabs_[i].name) != 0)
       continue;
 
@@ -624,8 +623,7 @@ ElfW(Addr) LinearLookup(ElfImg *img, const char *restrict name, unsigned char *s
 ElfW(Addr) LinearLookupByPrefix(ElfImg *img, const char *prefix, unsigned char *sym_type) {
   if (!_load_symtabs(img)) return 0;
 
-  size_t valid_symtabs_amount = calculate_valid_symtabs_amount(img);
-  if (valid_symtabs_amount == 0) {
+  if (img->valid_symtabs_count == 0) {
     LOGW("No valid symbols (FUNC/OBJECT with size > 0) found in .symtab for %s", img->elf);
 
     return 0;
@@ -634,7 +632,7 @@ ElfW(Addr) LinearLookupByPrefix(ElfImg *img, const char *prefix, unsigned char *
   size_t prefix_len = strlen(prefix);
   if (prefix_len == 0) return 0;
 
-  for (size_t i = 0; i < valid_symtabs_amount; i++) {
+  for (size_t i = 0; i < img->valid_symtabs_count; i++) {
     if (!img->symtabs_[i].name || strlen(img->symtabs_[i].name) < prefix_len)
       continue;
 
