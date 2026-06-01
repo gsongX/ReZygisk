@@ -8,6 +8,8 @@ let rzState = {
   expectedWorking: 0
 }
 
+let _refreshInterval = null
+
 async function _getReZygiskState() {
   let stateCmd = await exec('/system/bin/cat /data/adb/rezygisk/state.json')
   if (stateCmd.errno !== 0) {
@@ -158,7 +160,10 @@ async function _updateDynamicElement(firstRun, ReZygiskState, strings) {
 }
 
 export async function loadOnce() {
-
+  if (_refreshInterval) {
+    clearInterval(_refreshInterval);
+    _refreshInterval = null;
+  }
 }
 
 export async function loadOnceView() {
@@ -189,5 +194,15 @@ export async function onceViewAfterUpdate() {
 }
 
 export async function load() {
-
+  if (_refreshInterval) clearInterval(_refreshInterval);
+  _refreshInterval = setInterval(async () => {
+    if (whichCurrentPage() !== 'home') {
+      clearInterval(_refreshInterval);
+      _refreshInterval = null;
+      return;
+    }
+    const state = await _getReZygiskState();
+    const strings = await getStrings(whichCurrentPage());
+    _updateDynamicElement(false, state, strings);
+  }, 3000);
 }
