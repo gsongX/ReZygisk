@@ -332,6 +332,17 @@ void zygiskd_start(char *restrict argv[]) {
       break;
     }
 
+    struct ucred cred = { 0 };
+    socklen_t cred_len = sizeof(cred);
+    if (getsockopt(client_fd, SOL_SOCKET, SO_PEERCRED, &cred, &cred_len) == 0) {
+      LOGI("Client uid=%d pid=%d", cred.uid, cred.pid);
+      if (cred.uid != 0) {
+        LOGW("Rejecting non-root client uid=%d pid=%d", cred.uid, cred.pid);
+        close(client_fd);
+        continue;
+      }
+    }
+
     uint8_t action8 = 0;
     ssize_t len = read_uint8_t(client_fd, &action8);
     if (len == -1) {
