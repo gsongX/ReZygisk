@@ -51,7 +51,7 @@ static bool is_valid_module_name(const char *name) {
   for (size_t i = 0; name[i]; i++) {
     char c = name[i];
     bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-              (c >= '0' && c <= '9') || c == '_' || c == '-' || c == '.';
+              (c >= '0' && c <= '9') || c == '_' || c == '-';
     if (!ok || i >= 127) return false;
   }
   return true;
