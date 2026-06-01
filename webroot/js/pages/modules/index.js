@@ -20,11 +20,12 @@ async function _getReZygiskState() {
 }
 
 async function _getModuleBadge(modName) {
-  const r = await exec('/system/bin/test -f /data/adb/modules/' + modName + '/disable')
+  const r = await exec("/system/bin/test -f '/data/adb/modules/" + modName + "/disable'")
   const disabled = r.errno === 0
-  return disabled
-    ? '<span class="badge badge-disabled">Disabled</span>'
-    : '<span class="badge badge-enabled">Enabled</span>'
+  const badge = document.createElement('span')
+  badge.className = disabled ? 'badge badge-disabled' : 'badge badge-enabled'
+  badge.textContent = disabled ? 'Disabled' : 'Enabled'
+  return badge
 }
 
 async function _getModuleNames(modules) {
@@ -70,26 +71,51 @@ async function _updateDynamicElement() {
 
   if (all_modules.length !== 0) {
     const modules_list = document.getElementById('modules_list')
-    modules_list.innerHTML = `
-      <div id="modules_list_not_avaliable" class="not_avaliable">
-        ${strings.notAvaliable}
-      </div>
-    `
-    document.getElementById('modules_list_not_avaliable').style.display = 'none'
+
+    const notAvailable = document.createElement('div')
+    notAvailable.id = 'modules_list_not_avaliable'
+    notAvailable.className = 'not_avaliable'
+    notAvailable.textContent = strings.notAvaliable
+    notAvailable.style.display = 'none'
+    modules_list.replaceChildren(notAvailable)
 
     const module_names = await _getModuleNames(all_modules)
     module_names.forEach((module_name, i) => all_modules[i].name = module_name)
 
     for (const module of all_modules) {
       const badge = await _getModuleBadge(module.id)
-      modules_list.innerHTML +=
-        `<div class="dim card" style="padding: 25px 15px; cursor: pointer;">
-          <div class="dimc" style="font-size: 1.1em; display: flex; align-items: center; gap: 8px;">${module.name}${badge}</div>
-          <div class="dimc desc" style="font-size: 0.9em; margin-top: 3px; white-space: nowrap; align-items: center; display: flex;">
-            <div class="dimc arch_desc">${strings.arch}</div>
-            <div class="dimc" style="margin-left: 5px;">${module.bitsUsed.join(' / ')}</div>
-          </div>
-        </div>`
+
+      const nameSpan = document.createElement('span')
+      nameSpan.textContent = module.name
+
+      const topRow = document.createElement('div')
+      topRow.className = 'dimc'
+      topRow.style.cssText = 'font-size: 1.1em; display: flex; align-items: center; gap: 8px;'
+      topRow.appendChild(nameSpan)
+      topRow.appendChild(badge)
+
+      const archLabel = document.createElement('div')
+      archLabel.className = 'dimc arch_desc'
+      archLabel.textContent = strings.arch
+
+      const bitsValue = document.createElement('div')
+      bitsValue.className = 'dimc'
+      bitsValue.style.marginLeft = '5px'
+      bitsValue.textContent = module.bitsUsed.join(' / ')
+
+      const bottomRow = document.createElement('div')
+      bottomRow.className = 'dimc desc'
+      bottomRow.style.cssText = 'font-size: 0.9em; margin-top: 3px; white-space: nowrap; align-items: center; display: flex;'
+      bottomRow.appendChild(archLabel)
+      bottomRow.appendChild(bitsValue)
+
+      const card = document.createElement('div')
+      card.className = 'dim card'
+      card.style.cssText = 'padding: 25px 15px; cursor: pointer;'
+      card.appendChild(topRow)
+      card.appendChild(bottomRow)
+
+      modules_list.appendChild(card)
     }
   }
 }
@@ -99,11 +125,11 @@ export async function loadOnce() {
 }
 
 export async function loadOnceView() {
-  _updateDynamicElement()
+  await _updateDynamicElement()
 }
 
 export async function onceViewAfterUpdate() {
-  _updateDynamicElement()
+  await _updateDynamicElement()
 }
 
 export async function load() {
