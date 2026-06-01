@@ -319,16 +319,19 @@ void rezygiskd_listener_callback() {
         }
 
         LOGD("%s root impl: %s", daemon_name, environment_information->root_impl);
+        
+        uint32_t old_modules_len = environment_information->modules_len;
 
         if (environment_information->modules) {
           LOGD("freeing old %s modules", daemon_name);
 
-          for (size_t i = 0; i < environment_information->modules_len; i++) {
+          for (size_t i = 0; i < old_modules_len; i++) {
             free((void *)environment_information->modules[i]);
           }
 
           free((void *)environment_information->modules);
           environment_information->modules = NULL;
+          environment_information->modules_len = 0;
         }
 
         environment_information->modules_len = info->modules_count;
