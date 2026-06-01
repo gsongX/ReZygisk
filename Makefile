@@ -108,6 +108,10 @@ $(ZIP_FILE): $(MODULE_DONE)
 	@mkdir -p $(ZIP_DIR)
 	@rm -f $@
 
+	@if [ -f CHANGELOG_LATEST.md ]; then \
+	    cp CHANGELOG_LATEST.md $(MODULE_OUT)/CHANGELOG.md; \
+	    echo "Copied CHANGELOG.md to module"; \
+	fi
 	@echo "Creating ZIP file..."
 	@cd $(MODULE_OUT) && zip -r9 $@ . -x '*.DS_Store' > /dev/null
 
