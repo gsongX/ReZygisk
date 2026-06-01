@@ -293,9 +293,12 @@ int read_fd(int fd) {
     return write(fd, &val, sizeof(type));   \
   }
 
-#define read_func(type)                     \
-  ssize_t read_## type(int fd, type *val) { \
-    return read(fd, val, sizeof(type));     \
+#define read_func(type)                          \
+  ssize_t read_## type(int fd, type *val) {      \
+    ssize_t _ret;                                \
+    do { _ret = read(fd, val, sizeof(type)); }  \
+    while (_ret == -1 && errno == EINTR);        \
+    return _ret;                                 \
   }
 
 write_func(size_t)
@@ -305,14 +308,7 @@ write_func(uint32_t)
 read_func(uint32_t)
 
 write_func(uint8_t)
-
-ssize_t read_uint8_t(int fd, uint8_t *val) {
-  ssize_t ret;
-  do {
-    ret = read(fd, val, sizeof(uint8_t));
-  } while (ret == -1 && errno == EINTR);
-  return ret;
-}
+read_func(uint8_t)
 
 ssize_t write_string(int fd, const char *restrict str) {
   size_t str_len = strlen(str);
