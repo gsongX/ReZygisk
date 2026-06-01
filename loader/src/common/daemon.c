@@ -29,7 +29,8 @@ int rezygiskd_connect(uint8_t retry) {
     Sources:
      - https://pubs.opengroup.org/onlinepubs/009696699/basedefs/sys/un.h.html
   */
-  strcpy(addr.sun_path, sock_path);
+  strncpy(addr.sun_path, sock_path, sizeof(addr.sun_path) - 1);
+  addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
   socklen_t socklen = sizeof(addr);
 
   retry++;
@@ -242,6 +243,15 @@ bool rezygiskd_read_modules(struct zygisk_modules *modules) {
 
   size_t len = 0;
   safe_read(read_size_t(fd, &len), "modules count", return false);
+
+  if (len == 0) {
+    modules->modules = NULL;
+    modules->modules_count = 0;
+
+    close(fd);
+
+    return true;
+  }
 
   modules->modules = malloc(len * sizeof(char *));
   if (!modules->modules) {
