@@ -283,6 +283,8 @@ void rezygiskd_listener_callback() {
         environment_information->root_impl[root_impl_len] = '\0';
         LOGD("ReZygiskd%s root impl: %s", cmd == DAEMON64_SET_INFO ? "64" : "32", environment_information->root_impl);
 
+        uint32_t old_modules_len = environment_information->modules_len;
+
         if (read_uint32_t(monitor_sock_fd, &environment_information->modules_len) != sizeof(environment_information->modules_len)) {
           LOGE("read ReZygiskd%s modules len", cmd == DAEMON64_SET_INFO ? "64" : "32");
 
@@ -295,12 +297,13 @@ void rezygiskd_listener_callback() {
         if (environment_information->modules) {
           LOGD("freeing old ReZygiskd%s modules", cmd == DAEMON64_SET_INFO ? "64" : "32");
 
-          for (size_t i = 0; i < environment_information->modules_len; i++) {
+          for (size_t i = 0; i < old_modules_len; i++) {
             free((void *)environment_information->modules[i]);
           }
 
           free((void *)environment_information->modules);
           environment_information->modules = NULL;
+          environment_information->modules_len = 0;
         }
 
         environment_information->modules = malloc(environment_information->modules_len * sizeof(char *));
