@@ -110,6 +110,7 @@ static bool get_current_attr(char *restrict output, size_t size) {
     return false;
   }
 
+  if (ret >= size) ret = size - 1;
   output[ret] = '\0';
 
   fclose(current);
@@ -304,7 +305,14 @@ write_func(uint32_t)
 read_func(uint32_t)
 
 write_func(uint8_t)
-read_func(uint8_t)
+
+ssize_t read_uint8_t(int fd, uint8_t *val) {
+  ssize_t ret;
+  do {
+    ret = read(fd, val, sizeof(uint8_t));
+  } while (ret == -1 && errno == EINTR);
+  return ret;
+}
 
 ssize_t write_string(int fd, const char *restrict str) {
   size_t str_len = strlen(str);
