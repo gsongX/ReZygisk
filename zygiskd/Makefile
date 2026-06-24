@@ -49,7 +49,7 @@ clean:
 
 $(OBJ_DIR)/%.o: src/%.c
 	@mkdir -p $(dir $@)
-	$(CC_ARCH) $(ZYGISKD_CFLAGS) $(TYPE_CFLAGS) $(INCLUDES) -c $< -o $@
+	$(CC_ARCH) $(NDK_CFLAGS) $(ZYGISKD_CFLAGS) $(TYPE_CFLAGS) $(INCLUDES) -c $< -o $@
 
 $(BIN): $(OBJS)
 	@mkdir -p $(dir $@)

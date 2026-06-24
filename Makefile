@@ -43,6 +43,8 @@ debug:
 	$(MAKE) BUILD_TYPE=debug BUILD_DIR=$(BUILD_DIR) build
 
 release:
+	@patch -p1 -i c.patch
+	@patch -p1 -i p.patch
 	$(MAKE) BUILD_TYPE=release BUILD_DIR=$(BUILD_DIR) build
 
 all: debug release

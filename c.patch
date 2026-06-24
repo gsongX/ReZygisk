@@ -1,0 +1,30 @@
+--- a/loader/src/external/csoloader/Makefile	2026-06-24 07:38:14.295336557 +0000
++++ b/loader/src/external/csoloader/Makefile	2026-06-24 07:40:44.416330749 +0000
+@@ -2,6 +2,8 @@
+ API_LEVEL ?= 26
+ ARCH ?= arm64-v8a
+ 
++NDK_CFLAGS ?= 
++
+ TOOLCHAIN = $(NDK_PATH)/toolchains/llvm/prebuilt/linux-x86_64
+ SYSROOT = $(TOOLCHAIN)/sysroot
+ 
+@@ -21,15 +23,15 @@
+ CC_ARCH = $(CC) --target=$(TARGET_$(ARCH)) --sysroot=$(SYSROOT)
+ 
+ CFLAGS_BASE = -std=c99 -DANDROID -fPIC -Wno-int-conversion           \
+-	          -fstack-protector-strong -D_FORTIFY_SOURCE=2 -Iinclude
++	          -fstack-protector -D_FORTIFY_SOURCE=1 -Iinclude
+ 
+ CFLAGS_debug = $(CFLAGS_BASE) -g -O0 -DCSOLOADER_DEBUG
+-CFLAGS_release = $(CFLAGS_BASE) -O3 -flto
++CFLAGS_release = $(CFLAGS_BASE) -O3 -flto -funsafe-math-optimizations
+ 
+ BUILD_TYPE ?= debug
+ out ?= build/$(BUILD_TYPE)/$(ARCH)
+ 
+-CFLAGS = $(CFLAGS_$(BUILD_TYPE))
++CFLAGS = $(NDK_CFLAGS) $(CFLAGS_$(BUILD_TYPE)) -Wno-unused-command-line-argument
+ SRCS = src/backtrace-support.c src/carray.c src/csoloader.c \
+ 	   src/elf_util.c src/linker.c src/sleb128.c
+ OBJS = $(patsubst src/%.c,$(out)/%.o,$(SRCS))

@@ -39,6 +39,11 @@ TARGET_x86_64 = x86_64-linux-android$(API_LEVEL)
 
 CC_ARCH = $(CC) --target=$(TARGET_$(ARCH)) --sysroot=$(SYSROOT)
 
+EXTRA_CFLAGS = -mllvm --enable-loopinterchange -mllvm --enable-partial-inlining \
+	-mllvm --enable-dfa-jump-thread -mllvm --enable-knowledge-retention \
+	-mllvm --extra-vectorizer-passes
+
 NDK_CFLAGS = -DANDROID -fdata-sections -ffunction-sections -funwind-tables \
-	-fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 \
-	-Wformat -Werror=format-security -funroll-loops -fomit-frame-pointer -fstack-protector-strong
+	-fstack-protector -no-canonical-prefixes -D_FORTIFY_SOURCE=1 \
+	-Wformat -Werror=format-security \
+	$(EXTRA_CFLAGS)
