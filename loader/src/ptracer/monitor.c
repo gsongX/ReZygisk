@@ -1054,9 +1054,9 @@ static bool prepare_environment() {
 void init_monitor() {
   LOGI("ReZygisk %s", ZKSU_VERSION);
 
-  if (!prepare_environment()) exit(1);
-
-  if (!claim_init_tracer()) exit(1);
+  if (!prepare_environment() || !claim_init_tracer()) {
+    exit(1);
+  }
 
   monitor_events_init();
 
