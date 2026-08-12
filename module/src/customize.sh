@@ -73,21 +73,13 @@ extract "$ZIPFILE" 'module.prop'     "$MODPATH"
 extract "$ZIPFILE" 'post-fs-data.sh' "$MODPATH"
 extract "$ZIPFILE" 'service.sh'      "$MODPATH"
 extract "$ZIPFILE" 'uninstall.sh'    "$MODPATH"
-extract "$ZIPFILE" 'rezygisk.sh' "/data/adb/post-fs-data.d/"
+extract "$ZIPFILE" '.rezygisk.sh'    "$MODPATH"
 
-# INFO: KernelSU 2.x.x and below runs post-fs-data.d before mounting
-#         the modules. This disallows us to clean our own module.prop.
-#         To work around this, we utilize post-mount.d which runs after
-#         mounting, and copy our post-fs-data.d script there.
-#
-# SOURCES:
-#  - https://github.com/tiann/KernelSU/blob/6615068a987a12bbc6a3ad272b285cec7f594964/userspace/ksud/src/init_event.rs#L123
-#  - https://github.com/tiann/KernelSU/blob/6615068a987a12bbc6a3ad272b285cec7f594964/userspace/ksud/src/init_event.rs#L161
-#  - https://github.com/tiann/KernelSU/blob/6615068a987a12bbc6a3ad272b285cec7f594964/userspace/ksud/src/init_event.rs#L212-L217
-mkdir -p /data/adb/post-mount.d
-cp "/data/adb/post-fs-data.d/rezygisk.sh" "/data/adb/post-mount.d/rezygisk.sh"
+if [ ! -f "$MODPATH/.rezygisk.sh" ]; then
+  abort "! Unable to extract .rezygisk.sh"
+fi
 
-cp "$MODPATH/module.prop" "$MODPATH/module.prop.bak"
+cp "$MODPATH/module.prop" "$MODPATH/module.prop.orig"
 
 chmod +x "$MODPATH/uninstall.sh"
 
@@ -194,4 +186,12 @@ HUAWEI_MAPLE_ENABLED=$(grep_prop ro.maple.enable)
 if [ "$HUAWEI_MAPLE_ENABLED" == "1" ]; then
   ui_print "- Add ro.maple.enable=0"
   echo "ro.maple.enable=0" >>"$MODPATH/system.prop"
+fi
+
+SERVICE_DIR=/data/adb/service.d
+SERVICE_SCRIPT="$SERVICE_DIR/.rezygisk.sh"
+if ! mkdir -p "$SERVICE_DIR" \
+    || ! cat "$MODPATH/.rezygisk.sh" > "$SERVICE_SCRIPT" \
+    || ! chmod +x "$SERVICE_SCRIPT"; then
+  abort "! Unable to install the module.prop recovery script"
 fi
